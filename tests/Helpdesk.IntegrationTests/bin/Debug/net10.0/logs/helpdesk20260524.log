@@ -1,0 +1,40 @@
+2026-05-24 17:46:40.583 +03:00 [INF] Executed DbCommand (18ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+PRAGMA journal_mode = 'wal';
+2026-05-24 17:46:40.694 +03:00 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+CREATE TABLE "Tickets" (
+    "Id" INTEGER NOT NULL CONSTRAINT "PK_Tickets" PRIMARY KEY AUTOINCREMENT,
+    "Title" TEXT NOT NULL,
+    "CategoryId" INTEGER NOT NULL,
+    "CreatedAt" TEXT NOT NULL,
+    "SlaDeadline" TEXT NULL,
+    "Status" TEXT NOT NULL,
+    "Solution" TEXT NULL
+);
+2026-05-24 17:46:40.766 +03:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-05-24 17:46:40.766 +03:00 [INF] Hosting environment: Development
+2026-05-24 17:46:40.767 +03:00 [INF] Content root path: C:\Users\fahre\OneDrive\Рабочий стол\HelpdeskApp\Helpdesk
+2026-05-24 17:46:40.784 +03:00 [INF] Request starting HTTP/1.1 POST http://localhost/api/tickets?title=IntegrationTest&categoryId=1&solutionText=TestSolution - null null
+2026-05-24 17:46:40.814 +03:00 [INF] Executing endpoint 'TicketsController.Create (Helpdesk)'
+2026-05-24 17:46:40.828 +03:00 [INF] Route matched with {action = "Create", controller = "Tickets"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Create(System.String, Int32, System.String) on controller TicketsController (Helpdesk).
+2026-05-24 17:46:40.839 +03:00 [INF] Creating ticket: IntegrationTest
+2026-05-24 17:46:40.987 +03:00 [INF] Executed DbCommand (5ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = DateTime), @p2='?' (DbType = DateTime), @p3='?' (Size = 12), @p4='?' (Size = 6), @p5='?' (Size = 15)], CommandType='"Text"', CommandTimeout='30']
+INSERT INTO "Tickets" ("CategoryId", "CreatedAt", "SlaDeadline", "Solution", "Status", "Title")
+VALUES (@p0, @p1, @p2, @p3, @p4, @p5)
+RETURNING "Id";
+2026-05-24 17:46:41.011 +03:00 [INF] Ticket 1 created
+2026-05-24 17:46:41.014 +03:00 [INF] Executing OkObjectResult, writing value of type 'Ticket'.
+2026-05-24 17:46:41.039 +03:00 [INF] Executed action TicketsController.Create (Helpdesk) in 208.703ms
+2026-05-24 17:46:41.040 +03:00 [INF] Executed endpoint 'TicketsController.Create (Helpdesk)'
+2026-05-24 17:46:41.044 +03:00 [INF] Request finished HTTP/1.1 POST http://localhost/api/tickets?title=IntegrationTest&categoryId=1&solutionText=TestSolution - 200 null application/json; charset=utf-8 260.5988ms
+2026-05-24 17:46:41.047 +03:00 [INF] Request starting HTTP/1.1 GET http://localhost/api/tickets - null null
+2026-05-24 17:46:41.050 +03:00 [INF] Executing endpoint 'TicketsController.GetAll (Helpdesk)'
+2026-05-24 17:46:41.054 +03:00 [INF] Route matched with {action = "GetAll", controller = "Tickets"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetAll() on controller TicketsController (Helpdesk).
+2026-05-24 17:46:41.058 +03:00 [INF] Fetching all tickets
+2026-05-24 17:46:41.242 +03:00 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT "t"."Id", "t"."CategoryId", "t"."CreatedAt", "t"."SlaDeadline", "t"."Solution", "t"."Status", "t"."Title"
+FROM "Tickets" AS "t"
+2026-05-24 17:46:41.247 +03:00 [INF] Executing OkObjectResult, writing value of type 'System.Collections.Generic.List`1[[Ticket, Helpdesk, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2026-05-24 17:46:41.251 +03:00 [INF] Executed action TicketsController.GetAll (Helpdesk) in 196.2189ms
+2026-05-24 17:46:41.251 +03:00 [INF] Executed endpoint 'TicketsController.GetAll (Helpdesk)'
+2026-05-24 17:46:41.251 +03:00 [INF] Request finished HTTP/1.1 GET http://localhost/api/tickets - 200 null application/json; charset=utf-8 204.1763ms
+2026-05-24 17:46:41.267 +03:00 [INF] Application is shutting down...

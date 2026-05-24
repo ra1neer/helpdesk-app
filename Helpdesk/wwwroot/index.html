@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helpdesk - Управление обращениями</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            transform: scale(1.02);
+            transition: 0.3s;
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+        }
+        .sla-urgent {
+            color: #dc3545;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: scale(1.01);
+            transition: 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="card shadow">
+            <div class="card-header">
+                <h3 class="mb-0">📋 Helpdesk - Управление обращениями</h3>
+                <p class="mb-0 mt-2">Создание и отслеживание тикетов (SLA, статусы, решения)</p>
+            </div>
+            <div class="card-body">
+                <!-- Форма создания обращения -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="mb-3">➕ Новое обращение</h5>
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <input type="text" id="title" class="form-control" placeholder="Название обращения">
+                            </div>
+                            <div class="col-md-3">
+                                <select id="categoryId" class="form-select">
+                                    <option value="1">🚨 Инцидент (SLA 4 часа)</option>
+                                    <option value="2">📝 Запрос (SLA 24 часа)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" id="solution" class="form-control" placeholder="Решение проблемы">
+                            </div>
+                            <div class="col-md-1">
+                                <button class="btn btn-primary w-100" onclick="createTicket()">Создать</button>
+                            </div>
+                        </div>
+                        <div id="createMessage" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Таблица обращений -->
+                <h5 class="mb-3">📌 Список обращений</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Категория</th>
+                                <th>Статус</th>
+                                <th>SLA дедлайн</th>
+                                <th>Решение</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticketsTable">
+                            <tr><td colspan="6" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Статус интеграции -->
+                <div id="statusMessage" class="alert alert-info mt-3" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5233/api/tickets';
+
+        // Загрузка списка обращений
+        async function loadTickets() {
+            try {
+                const response = await fetch(API_BASE);
+                if (!response.ok) throw new Error('Ошибка загрузки');
+                const tickets = await response.json();
+                renderTickets(tickets);
+                showStatus('✅ Данные обновлены', 'success');
+            } catch (error) {
+                console.error(error);
+                document.getElementById('ticketsTable').innerHTML = '<tr><td colspan="6" class="text-danger text-center">❌ Ошибка загрузки данных</td></tr>';
+                showStatus('❌ Ошибка загрузки обращений', 'danger');
+            }
+        }
+
+        // Отображение таблицы
+        function renderTickets(tickets) {
+            const tbody = document.getElementById('ticketsTable');
+            if (!tickets.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">📭 Нет обращений</td></tr>';
+                return;
+            }
+            tbody.innerHTML = tickets.map(t => `
+                <tr>
+                    <td><strong>#${t.id}</strong></td>
+                    <td>${escapeHtml(t.title)}</td>
+                    <td>${t.categoryId === 1 ? '🚨 Инцидент' : '📝 Запрос'}</td>
+                    <td><span class="badge ${getStatusBadge(t.status)} status-badge">${t.status || 'New'}</span></td>
+                    <td class="${isSlaUrgent(t.slaDeadline) ? 'sla-urgent' : ''}">${formatDate(t.slaDeadline)}</td>
+                    <td>${escapeHtml(t.solution || '—')}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Создание обращения
+        async function createTicket() {
+            const title = document.getElementById('title').value.trim();
+            const categoryId = document.getElementById('categoryId').value;
+            const solution = document.getElementById('solution').value.trim();
+
+            if (!title) {
+                showStatus('⚠️ Введите название обращения', 'warning');
+                return;
+            }
+
+            const url = `${API_BASE}?title=${encodeURIComponent(title)}&categoryId=${categoryId}&solutionText=${encodeURIComponent(solution || 'Решение не указано')}`;
+
+            try {
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    headers: { 'Accept': 'application/json' } 
+                });
+                if (!response.ok) throw new Error('Ошибка создания');
+                const newTicket = await response.json();
+                showStatus(`✅ Обращение #${newTicket.id} создано! Статус: ${newTicket.status}`, 'success');
+                document.getElementById('title').value = '';
+                document.getElementById('solution').value = '';
+                loadTickets();
+            } catch (error) {
+                console.error(error);
+                showStatus('❌ Ошибка создания обращения', 'danger');
+            }
+        }
+
+        // Статус сообщения
+        function showStatus(message, type) {
+            const msgDiv = document.getElementById('statusMessage');
+            msgDiv.className = `alert alert-${type} mt-3`;
+            msgDiv.innerHTML = message;
+            msgDiv.style.display = 'block';
+            setTimeout(() => {
+                msgDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Вспомогательные функции
+        function getStatusBadge(status) {
+            const map = { 
+                'New': 'bg-secondary', 
+                'Assigned': 'bg-info', 
+                'InProgress': 'bg-warning', 
+                'Resolved': 'bg-primary', 
+                'Closed': 'bg-success' 
+            };
+            return map[status] || 'bg-secondary';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const date = new Date(dateStr);
+            return date.toLocaleString('ru-RU');
+        }
+
+        function isSlaUrgent(deadline) {
+            if (!deadline) return false;
+            const remaining = new Date(deadline) - new Date();
+            return remaining < 3600000 && remaining > 0;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Автообновление каждые 10 секунд
+        loadTickets();
+        setInterval(loadTickets, 10000);
+    </script>
+</body>
+</html>
